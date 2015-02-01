@@ -39,7 +39,7 @@ UUID::decode(Buffer *buf)
 	string_ = std::string((const char *)str, sizeof str);
 
 	uuid_t uuid;
-	int rv = uuid_parse(string_.c_str(), uuid);
+	int rv = uuid_parse(const_cast<char *>(string_.c_str()), uuid);
 	if (rv == -1)
 		return (false);
 	ASSERT("/uuid/libuuid", rv == 0);
