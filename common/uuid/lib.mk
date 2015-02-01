@@ -9,3 +9,7 @@ endif
 ifeq "${OSNAME}" "Linux"
 LDADD+=	-luuid
 endif
+
+ifeq "${OSNAME}" "SunOS"
+LDADD+=	-luuid
+endif
