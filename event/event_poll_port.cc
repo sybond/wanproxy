@@ -42,9 +42,9 @@ EventPoll::EventPoll(void)
 : log_("/event/poll"),
   read_poll_(),
   write_poll_(),
-  port_(port_create())
+  state_(port_create())
 {
-	ASSERT(log_, port_ != -1);
+	ASSERT(log_, state_ != -1);
 }
 
 EventPoll::~EventPoll()
@@ -78,12 +78,12 @@ EventPoll::poll(const Type& type, int fd, EventCallback *cb)
 		NOTREACHED(log_);
 	}
 	if (dissociate) {
-		int rv = ::port_dissociate(port_, PORT_SOURCE_FD, fd);
+		int rv = ::port_dissociate(state_, PORT_SOURCE_FD, fd);
 		if (rv == -1)
 			HALT(log_) << "Could not dissociate from port.";
 	}
 	ASSERT(log_, events != 0);
-	int rv = ::port_associate(port_, PORT_SOURCE_FD, fd, events, NULL);
+	int rv = ::port_associate(state_, PORT_SOURCE_FD, fd, events, NULL);
 	if (rv == -1)
 		HALT(log_) << "Could not associate to port.";
 	ASSERT(log_, rv == 0);
@@ -124,13 +124,13 @@ EventPoll::cancel(const Type& type, int fd)
 		}
 		break;
 	}
-	int rv = ::port_dissociate(port_, PORT_SOURCE_FD, fd);
+	int rv = ::port_dissociate(state_, PORT_SOURCE_FD, fd);
 	if (rv == -1)
 		HALT(log_) << "Could not disassociate from port.";
 	ASSERT(log_, rv == 0);
 	if (associate) {
 		ASSERT(log_, events != 0);
-		rv = ::port_associate(port_, PORT_SOURCE_FD, fd, events, NULL);
+		rv = ::port_associate(state_, PORT_SOURCE_FD, fd, events, NULL);
 		if (rv == -1)
 			HALT(log_) << "Could not associate to port.";
 	}
@@ -157,7 +157,7 @@ EventPoll::wait(int ms)
 
 	port_event_t pev[pevcnt];
 	unsigned evcnt = 1;
-	int rv = port_getn(port_, pev, pevcnt, &evcnt, ms == -1 ? NULL : &ts);
+	int rv = port_getn(state_, pev, pevcnt, &evcnt, ms == -1 ? NULL : &ts);
 	if (rv == -1) {
 		if (errno == EINTR) {
 			INFO(log_) << "Received interrupt, ceasing polling until stop handlers have run.";
@@ -184,7 +184,7 @@ EventPoll::wait(int ms)
 			events |= POLLIN;
 		if (write_poll_.find(fd) != write_poll_.end())
 			events |= POLLOUT;
-		rv = ::port_associate(port_, PORT_SOURCE_FD, fd, events, NULL);
+		rv = ::port_associate(state_, PORT_SOURCE_FD, fd, events, NULL);
 		if (rv == -1) {
 			HALT(log_) << "Could not associate to port.";
 		}
